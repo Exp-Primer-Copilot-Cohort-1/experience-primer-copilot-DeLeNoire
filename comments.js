@@ -1,65 +1,83 @@
-// create a server-side route for adding a comment to a post
-// =============================================================
+// Create web server application using ExpressJS
+// This application will read comments from a JSON file
+// and display them in the browser
 
-// Requiring our models
-var db = require("../models");
+// Import the express module
+const express = require('express');
 
-// Routes
-// =============================================================
-module.exports = function(app) {
+// Create an instance of the express module
+const app = express();
 
-  // GET route for getting all of the comments
-  app.get("/api/comments", function(req, res) {
-    // findAll returns all entries for a table when used with no options
-    db.Comment.findAll({}).then(function(dbComment) {
-      // We have access to the comments as an argument inside of the callback function
-      res.json(dbComment);
-    });
-  });
+// Set the port number
+const port = 3000;
 
-  // POST route for saving a new comment
-  app.post("/api/comments", function(req, res) {
-    // create takes an argument of an object describing the item we want to
-    // insert into our table. In this case we just we pass in an object with a text and complete property
-    db.Comment.create({
-      text: req.body.text,
-      complete: req.body.complete
-    }).then(function(dbComment) {
-      // We have access to the new comment as an argument inside of the callback function
-      res.json(dbComment);
-    });
-  });
+// Use the express.static middleware to serve static files
+app.use(express.static('public'));
 
-  // DELETE route for deleting comments. We can get the id of the comment to be deleted from
-  // req.params.id
-  app.delete("/api/comments/:id", function(req, res) {
-    // We just have to specify which comment we want to destroy with "where"
-    db.Comment.destroy({
-      where: {
-        id: req.params.id
-      }
-    }).then(function(dbComment) {
-      res.json(dbComment);
-    });
+// Use the express.json() middleware to parse JSON
+app.use(express.json());
 
-  });
+// Import the comments.js module
+const comments = require('./comments.js');
 
-  // PUT route for updating comments. We can get the updated comment data from req.body
-  app.put("/api/comments", function(req, res) {
+// GET /comments
+// Respond with JSON object containing all comments
+app.get('/comments', (req, res) => {
+    // Set the HTTP status code of the response
+    res.status(200);
 
-    // Update takes in an object describing the properties we want to update, and
-    // we use where to describe which objects we want to update
-    db.Comment.update({
-      text: req.body.text,
-      complete: req.body.complete
-    }, {
-      where: {
-        id: req.body.id
-      }
-    }).then(function(dbComment) {
-      res.json(dbComment);
-    });
-  });
+    // Set the Content-Type of the response to JSON
+    res.type('application/json');
 
-};
+    // Respond with the JSON data
+    res.send(comments.getAll());
+});
 
+// GET /comments/:id
+// Respond with JSON object containing comment with specified id
+app.get('/comments/:id', (req, res) => {
+    // Get the id parameter from the request
+    const id = req.params.id;
+
+    // Get the comment with the specified id
+    const comment = comments.getComment(id);
+
+    // If a comment with the specified id exists
+    if (comment) {
+        // Set the HTTP status code of the response
+        res.status(200);
+
+        // Set the Content-Type of the response to JSON
+        res.type('application/json');
+
+        // Respond with the JSON data
+        res.send(comment);
+    }
+    // If a comment with the specified id does not exist
+    else {
+        // Set the HTTP status code of the response
+        res.status(404);
+
+        // Set the Content-Type of the response to JSON
+        res.type('application/json');
+
+        // Respond with an error message
+        res.send({ message: `Comment with id ${id} does not exist` });
+    }
+});
+
+// POST /comments
+// Respond with JSON object containing comment with specified id
+app.post('/comments', (req, res) => {
+    // Get the comment object from the request body
+    const comment = req.body;
+
+    // Add the comment to the list of comments
+    comments.addComment(comment);
+
+    // Set the HTTP status code of the response
+    res.status(201);
+
+    // Set the Content-Type of the response to JSON
+    res.type('application/json');
+}); // Add a closing curly brace here
